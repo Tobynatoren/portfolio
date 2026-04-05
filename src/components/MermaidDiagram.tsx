@@ -33,7 +33,7 @@ export default function MermaidDiagram({ diagram }: { diagram: string }) {
   return (
     <div
       ref={ref}
-      className="rounded-lg bg-bg-surface p-6 overflow-x-auto [&_svg]:max-w-full"
+      className="rounded-lg bg-bg-surface p-6 overflow-x-auto [&_svg]:w-full [&_svg]:h-auto"
     />
   );
 }
