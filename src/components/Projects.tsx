@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { flushSync } from "react-dom";
 import { projects } from "../data/projects";
 import ProjectItem from "./ProjectItem";
 import ProjectDetail from "./ProjectDetail";
@@ -16,10 +16,22 @@ export default function Projects() {
       setSelectedSlug(null);
       return;
     }
-    setSelectedSlug(slug);
-    requestAnimationFrame(() => {
-      itemRefs.current[slug]?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+
+    // Snapshot where the clicked item is on screen
+    const el = itemRefs.current[slug];
+    const topBefore = el?.getBoundingClientRect().top ?? 0;
+
+    // Force synchronous DOM update so we can measure immediately after
+    flushSync(() => setSelectedSlug(slug));
+
+    // Correct scroll to keep the clicked item in the same visual spot
+    if (el) {
+      const topAfter = el.getBoundingClientRect().top;
+      const drift = topAfter - topBefore;
+      if (Math.abs(drift) > 1) {
+        window.scrollBy({ top: drift, behavior: "instant" });
+      }
+    }
   }
 
   return (
@@ -37,14 +49,12 @@ export default function Projects() {
               isSelected={selectedSlug === project.slug}
               onClick={() => handleClick(project.slug)}
             />
-            <AnimatePresence>
-              {selectedSlug === project.slug && selected && (
-                <ProjectDetail
-                  project={selected}
-                  onClose={() => setSelectedSlug(null)}
-                />
-              )}
-            </AnimatePresence>
+            {selectedSlug === project.slug && selected && (
+              <ProjectDetail
+                project={selected}
+                onClose={() => setSelectedSlug(null)}
+              />
+            )}
           </div>
         ))}
       </div>
