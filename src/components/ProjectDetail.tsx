@@ -37,7 +37,7 @@ export default function ProjectDetail({ project, onClose }: Props) {
           Close
         </button>
 
-        {project.schema && <SchemaShowcase schema={project.schema} />}
+        {project.showcase && <SchemaShowcase showcase={project.showcase} />}
       </div>
     </motion.div>
   );

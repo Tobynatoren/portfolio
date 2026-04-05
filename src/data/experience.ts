@@ -6,7 +6,7 @@ export const experience: ExperienceEntry[] = [
     company: "Dataproces",
     period: "Jul 2025 – Present",
     description:
-      "Backend developer in the KØS division, building software that helps Danish municipalities streamline workflows and make better use of their data. Leading the database side of the department — designing efficient data structures, optimizing data processing, and ensuring smooth system integrations. Built the District Window: a system that processes CPR-based population data, assigns residents to districts using geographic coordinates, and aggregates demographics by gender and age for municipal planning.",
+      "Backend developer in the KØS division, building software that helps Danish municipalities streamline workflows and make better use of their data. Leading the database side of the department, which means I get to design data structures, optimize processing, and make sure integrations run smoothly. Built the District Window: a system that processes CPR-based population data, assigns residents to districts using geographic coordinates, and aggregates demographics by gender and age for municipal planning.",
     tech: ["PHP", "SQL", "Spring Boot", "Database Design"],
     type: "work",
   },

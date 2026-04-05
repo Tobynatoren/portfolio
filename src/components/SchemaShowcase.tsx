@@ -1,62 +1,33 @@
-import { useEffect, useRef } from "react";
-import mermaid from "mermaid";
 import { Highlight, themes } from "prism-react-renderer";
-import type { ProjectSchema } from "../types";
-
-mermaid.initialize({
-  startOnLoad: false,
-  theme: "dark",
-  themeVariables: {
-    primaryColor: "#f0c040",
-    primaryTextColor: "#ededef",
-    primaryBorderColor: "#1e1e22",
-    lineColor: "#6e6e73",
-    secondaryColor: "#161618",
-    tertiaryColor: "#0a0a0b",
-  },
-});
+import type { ProjectShowcase } from "../types";
+import MermaidDiagram from "./MermaidDiagram";
 
 interface Props {
-  schema: ProjectSchema;
+  showcase: ProjectShowcase;
 }
 
-export default function SchemaShowcase({ schema }: Props) {
-  const diagramRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!diagramRef.current) return;
-
-    const id = `mermaid-${Date.now()}`;
-    mermaid.render(id, schema.mermaidDiagram).then(({ svg }) => {
-      if (diagramRef.current) {
-        diagramRef.current.innerHTML = svg;
-      }
-    }).catch(() => {
-      if (diagramRef.current) {
-        diagramRef.current.textContent = "Failed to render diagram";
-      }
-    });
-  }, [schema.mermaidDiagram]);
-
+export default function SchemaShowcase({ showcase }: Props) {
   return (
     <div className="mt-8 space-y-8">
-      <div>
-        <h4 className="font-display text-xs font-medium uppercase tracking-[0.2em] text-gold mb-4">
-          Schema Design
-        </h4>
-        <div
-          ref={diagramRef}
-          className="rounded-lg bg-bg-surface p-6 overflow-x-auto [&_svg]:max-w-full"
-        />
-      </div>
+      {showcase.sections.map((section) => (
+        <div key={section.title}>
+          <h4 className="font-display text-xs font-medium uppercase tracking-[0.2em] text-gold mb-4">
+            {section.title}
+          </h4>
+          <MermaidDiagram diagram={section.diagram} />
+          <p className="mt-3 text-sm text-text-tertiary italic">
+            {section.annotation}
+          </p>
+        </div>
+      ))}
 
-      {schema.sqlSnippets.length > 0 && (
+      {showcase.sqlSnippets.length > 0 && (
         <div>
           <h4 className="font-display text-xs font-medium uppercase tracking-[0.2em] text-gold mb-4">
             Key Queries
           </h4>
           <div className="space-y-6">
-            {schema.sqlSnippets.map((snippet) => (
+            {showcase.sqlSnippets.map((snippet) => (
               <div key={snippet.title}>
                 <h5 className="text-sm font-medium text-text-primary mb-2">
                   {snippet.title}

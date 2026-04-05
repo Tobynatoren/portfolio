@@ -24,8 +24,44 @@ export const projects: Project[] = [
 
     featured: true,
     category: "github",
-    schema: {
-      mermaidDiagram: `erDiagram
+    showcase: {
+      sections: [
+        {
+          title: "Data Pipeline",
+          diagram: `flowchart LR
+    MLB["MLB Stats API"] -->|game results| ING["Ingestion\n4 seasons"]
+    SAV["Baseball Savant"] -->|pitch-level data| SC["Statcast\nFetch"]
+    OM["Open-Meteo API"] -->|stadium weather| WX["Weather\nCache"]
+
+    ING --> ELO["ELO Engine\nTeam + Pitcher\nK=4 / K=32"]
+    SC --> FE["Feature Engineering\n14-day rolling windows"]
+    FE --> BF["Bullpen Fatigue\n3-day relief pitch sum"]
+    FE --> PR["Pitcher Rolling\nWhiff, Hard-hit, Velo"]
+    FE --> CF["Catcher Framing\nBorderline strike rate"]
+    SC --> BVP["Batter vs Pitcher\nwOBA matchups"]
+    SC --> BE["Batter ELO\nwOBA-based K=12"]
+
+    ELO --> ML["LightGBM\n20 features\nHome-Away diffs"]
+    FE --> ML
+    BF --> ML
+    PR --> ML
+    CF --> ML
+    BVP --> ML
+    WX --> ML
+
+    ML --> PRED["Predictions\nBrier score eval"]
+    ELO --> MC["Monte Carlo\n10,000 sims\nPlayoff odds"]
+
+    PRED --> CACHE["SQLite Cache\nDataFrames + JSON"]
+    MC --> CACHE
+    CACHE --> API["FastAPI\nLoads all on startup"]
+    API --> DASH["React Dashboard\nPlotly charts"]`,
+          annotation:
+            "The entire pipeline runs once on FastAPI startup and caches results in SQLite, so the dashboard serves predictions from memory with zero latency. LightGBM was chosen over Logistic Regression because it handles NaN features natively and discovers feature interactions, meaning every game gets a prediction even with incomplete Statcast data.",
+        },
+        {
+          title: "Schema Design",
+          diagram: `erDiagram
     GAME_RESULT {
         string date
         string home_team
@@ -66,27 +102,34 @@ export const projects: Project[] = [
     GAME_RESULT }|--|| STATCAST_FEATURES : "enriched by"
     GAME_RESULT }|--o| PITCHER_ELO : "starting pitcher"
     GAME_RESULT }|--o{ BATTER_ELO : "lineup matchups"`,
+          annotation:
+            "pandas DataFrames serve as the primary in-memory data structure, with SQLite used only for persistent caching between runs. On startup, DataFrames and JSON metadata are loaded from a single .db file, avoiding any repeated API calls to MLB or Baseball Savant.",
+        },
+      ],
       sqlSnippets: [
         {
-          title: "SQLite schema for game results and ELO tracking",
-          code: `-- Games are ingested from the MLB Stats API and stored in-memory
--- via pandas DataFrames, with SQLite used for persistent caching.
--- The ELO engine processes games chronologically:
+          title: "SQLite cache: DataFrames as tables, metadata as JSON key-value pairs",
+          code: `-- The cache stores pandas DataFrames as full SQL tables
+-- and all scalar data (ratings, Brier scores, Monte Carlo
+-- results) as JSON in a key-value metadata table.
 
--- For each game:
---   E_A = 1 / (1 + 10^((R_B - R_A) / 400))    -- win probability
---   R_new = R_old + K * (actual - expected)      -- rating update
+-- DataFrame tables (written via pandas to_sql):
+--   predictions    -- every ELO + ML prediction for 2024
+--   history        -- team ELO after every game (for charts)
+--   ml_predictions -- predictions with ML probability column
+--   batter_history -- per-game batter ELO for player profiles
+--   batter_games   -- per-game wOBA for batter detail pages
 
--- The ML model adds 20 features per game as differentials:
--- exit_velo_diff, launch_angle_diff, pitch_speed_diff,
--- spin_rate_diff, rest_days_diff, bullpen_fatigue_diff,
--- recent_form_diff, whiff_trend, barrel_rate_diff,
--- catcher_framing, game_temperature, pythag_residual...
+-- Metadata table:
+CREATE TABLE metadata (
+    key   TEXT PRIMARY KEY,  -- 'ratings', 'monte_carlo', etc.
+    value TEXT               -- JSON blob
+);
 
--- Monte Carlo: simulate remaining schedule 10,000 times
--- using ELO probabilities to estimate playoff odds.`,
+-- First run: ~3-5 minutes (API calls + training).
+-- Every run after: ~1 second (SQLite load).`,
           annotation:
-            "The system uses pandas DataFrames as the primary data structure with SQLite for persistent caching between runs. The FastAPI server loads the entire simulation into memory on startup for instant page loads. LightGBM handles missing features natively, so every game gets a prediction even with incomplete Statcast data.",
+            "The cache design exploits pandas' native SQLite integration for DataFrames while using a simple key-value table for everything else. This means the full simulation state is recoverable from a single .db file, and clearing the cache forces a fresh recompute on next startup.",
         },
       ],
     },
@@ -114,8 +157,29 @@ export const projects: Project[] = [
 
     featured: true,
     category: "github",
-    schema: {
-      mermaidDiagram: `erDiagram
+    showcase: {
+      sections: [
+        {
+          title: "Code Execution Pipeline",
+          diagram: `flowchart TD
+    SUB["Player submits code\nvia Monaco Editor"] --> CC["ChallengeController\nPOST /challenges/:id/submit"]
+    CC --> CR["CodeRunner.compile()\njavax.tools.JavaCompiler"]
+    CR -->|"in-memory .java\nInMemorySource"| JC["JDK Compiler\nDiagnosticCollector"]
+    JC -->|"bytecode"| CL["InMemoryFileManager\nCustom ClassLoader"]
+    CL -->|"Class object"| GR["Grader\nReflection: findMethod()"]
+    GR -->|"invoke per test case"| TC["Test Runner\nParse input, compare output"]
+    TC -->|"all passed"| AST["CodeQualityAnalyzer\nJavaParser AST"]
+    TC -->|"any failed"| FAIL["Return errors\n+ test case diffs"]
+    AST -->|"metrics"| FORGE["ForgeService\nTier: iron/steel/\nmithril/dragonforged"]
+    FORGE --> RW["RewardService\nBase XP * bonuses\n+50% first-try\n+25% no hints"]
+    RW --> PROG["ProgressService\nSave to SQLite\nUpdate grimoire"]
+    PROG --> RES["Response: XP, spell name,\nforge tier, test results"]`,
+          annotation:
+            "All compilation and execution happens in-process using the JDK's built-in JavaCompiler API with custom in-memory file managers, avoiding any subprocess or sandbox overhead. The Grader invokes the student's method via reflection, parsing test inputs into the correct Java types at runtime. Code quality is evaluated via a separate JavaParser AST pass that counts cyclomatic complexity, nesting depth, and effective line count to determine the forge tier.",
+        },
+        {
+          title: "Schema Design",
+          diagram: `erDiagram
     PLAYER {
         int id PK
         string name
@@ -152,6 +216,10 @@ export const projects: Project[] = [
     PLAYER ||--o{ CHALLENGE_PROGRESS : "tracks"
     CHALLENGE ||--o{ TEST_CASE : "has"
     CHALLENGE ||--o| CHALLENGE_PROGRESS : "solved in"`,
+          annotation:
+            "Challenges are loaded from JSON files on the classpath at startup, not stored in the database. Only player state and progress are persisted in SQLite. The challenge_progress table stores the best submitted code so the Grimoire can display collected spells, and the forge_tier column tracks quality for reforging on re-submission.",
+        },
+      ],
       sqlSnippets: [
         {
           title: "SQLite schema for player progress and challenge tracking",
@@ -198,5 +266,62 @@ CREATE TABLE IF NOT EXISTS challenge_progress (
 
     featured: true,
     category: "github",
+    showcase: {
+      sections: [
+        {
+          title: "Voxel Terrain System",
+          diagram: `flowchart TD
+    WG["World.gd\nTerrain generation\nNoise + structures"] -->|"set_block(pos, color,\nhealth, layer)"| CM["ChunkManager.gd\nworld-to-chunk coord mapping"]
+    CM -->|"get_or_create_chunk()"| CH["Chunk.gd\n16x16x16 per chunk\nGDScript blocks dict"]
+    CH -->|"delegates storage"| ND["NativeChunkData (C++)\n64x uint64 bitmask presence\n8-byte BlockData per voxel"]
+    ND -->|"generate_mesh_arrays()"| GM["Greedy Meshing (C++)\nMerge coplanar faces\nCross-chunk neighbor culling"]
+    GM -->|"vertices, normals, colors"| AM["ArrayMesh\nSingle draw call per chunk"]
+    ND -->|"generate_collision_faces()"| CS["ConcavePolygonShape3D\nPhysics collision"]
+
+    CM -->|"damage_block()"| DMG["Block Damage\nServer-authoritative"]
+    DMG -->|"health <= 0"| REM["remove_block()\nRPC sync to clients"]
+    REM -->|"batch destroyed positions"| SI["StructuralIntegrity.gd\nAutoload singleton"]
+    SI -->|"recalculate_integrity_region()"| CW["NativeChunkWorld (C++)\nBFS support propagation\nWeight vs. capacity check"]
+    CW -->|"collapsed blocks"| FB["FallingBlock.tscn\nRigidBody3D physics\nCascade chain reaction"]
+
+    subgraph "C++ GDExtension Layer"
+        ND
+        GM
+        CW
+    end`,
+          annotation:
+            "The critical performance boundary is between GDScript (game logic, networking, UI) and C++ (voxel storage, meshing, structural integrity math). A 16x16x16 chunk stores 4,096 blocks as a 64-entry uint64 bitmask for fast presence checks plus an 8-byte BlockData struct per voxel. The C++ layer handles greedy meshing with cross-chunk neighbor awareness, reducing thousands of block faces into merged quads for a single draw call per chunk. Structural integrity uses weight-based BFS propagation where each block type has defined weight and support capacity, causing realistic cascading collapses when load-bearing blocks are destroyed.",
+        },
+        {
+          title: "Multiplayer Architecture",
+          diagram: `flowchart TD
+    HOST["Host / Server\nENetMultiplayerPeer\nPort 25565"] -->|"_send_map_info.rpc()"| CL1["Client 1"]
+    HOST -->|"_send_map_info.rpc()"| CL2["Client 2"]
+
+    subgraph "Lobby Phase"
+        LP["NetworkManager.gd\nAutoload singleton"]
+        LP -->|"register_player.rpc()"| TEAM["Team Assignment\nAuto-balance or preference"]
+        TEAM --> CLASS["Class Selection\n6 character classes"]
+        CLASS --> READY["Ready Toggle\nAll must ready up"]
+        READY -->|"_broadcast_game_start.rpc()"| SPAWN["World spawns players\nMultiplayerSynchronizer"]
+    end
+
+    subgraph "Authoritative Server Model"
+        INPUT["Client Input\nMovement, aim, shoot"] -->|"physics_process"| SYNC["MultiplayerSynchronizer\nPosition, rotation, velocity"]
+        SHOOT["Weapon fire\nRaycast hit detection"] -->|"server validates"| HIT["take_damage.rpc()\nServer only"]
+        HIT --> KILL["record_kill / record_death\n_sync_player_stat.rpc()"]
+        BDMG["Block damage\nExplosions, bullets"] -->|"server authoritative"| BSYNC["_sync_block_removed.rpc()\n_sync_block_damaged.rpc()"]
+        BSYNC --> SICOL["Structural collapse\n_sync_collapse_batch.rpc()"]
+    end
+
+    subgraph "Periodic Sync"
+        PING["_update_all_pings()\nEvery 2 seconds"] -->|"ENet RTT"| PBROADCAST["_receive_ping_data.rpc()\nAll clients"]
+    end`,
+          annotation:
+            "The server is fully authoritative for all damage, kills, and terrain destruction. Clients send input and render predictions, but the server validates every hit and block modification before broadcasting the result via RPCs. Block damage uses reliable RPCs for destruction events and unreliable RPCs for health updates (acceptable loss). The lobby phase handles team balancing, class selection, and map synchronization before the host triggers game start.",
+        },
+      ],
+      sqlSnippets: [],
+    },
   },
 ];

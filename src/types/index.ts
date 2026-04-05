@@ -4,8 +4,14 @@ export interface SqlSnippet {
   annotation: string;
 }
 
-export interface ProjectSchema {
-  mermaidDiagram: string;
+export interface ShowcaseSection {
+  title: string;
+  diagram: string;
+  annotation: string;
+}
+
+export interface ProjectShowcase {
+  sections: ShowcaseSection[];
   sqlSnippets: SqlSnippet[];
 }
 
@@ -18,7 +24,7 @@ export interface Project {
   github?: string;
   featured: boolean;
   category: "github" | "work";
-  schema?: ProjectSchema;
+  showcase?: ProjectShowcase;
 }
 
 export interface SkillGroup {
