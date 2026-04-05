@@ -5,7 +5,6 @@ const accentColors: Record<string, string> = {
   mlbelo: "group-hover:text-gold",
   javaquest: "group-hover:text-coral",
   "godot-projects": "group-hover:text-teal",
-  truckerbadv2: "group-hover:text-lavender",
 };
 
 interface Props {

@@ -6,7 +6,6 @@ const accentBorders: Record<string, string> = {
   mlbelo: "border-l-gold",
   javaquest: "border-l-coral",
   "godot-projects": "border-l-teal",
-  truckerbadv2: "border-l-lavender",
 };
 
 interface Props {
