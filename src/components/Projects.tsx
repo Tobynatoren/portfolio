@@ -16,14 +16,10 @@ export default function Projects() {
       setSelectedSlug(null);
       return;
     }
-    // Close current first, then open new after exit animation settles
-    setSelectedSlug(null);
-    setTimeout(() => {
-      setSelectedSlug(slug);
-      setTimeout(() => {
-        itemRefs.current[slug]?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 50);
-    }, 150);
+    setSelectedSlug(slug);
+    requestAnimationFrame(() => {
+      itemRefs.current[slug]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   return (

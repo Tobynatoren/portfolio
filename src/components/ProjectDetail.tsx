@@ -21,7 +21,7 @@ export default function ProjectDetail({ project, onClose }: Props) {
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
       exit={{ opacity: 0, height: 0 }}
-      transition={{ type: "spring", stiffness: 80, damping: 18 }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
       className="overflow-hidden"
     >
       <div className={`pl-6 border-l-2 ${borderClass} py-6 mb-4`}>
