@@ -36,20 +36,20 @@ export default function Hero() {
           variants={word}
           className="font-display text-sm font-medium uppercase tracking-[0.2em] text-gold mb-6"
         >
-          Software Engineer
+          Software Developer
         </motion.p>
 
         <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
-          <AnimatedLine>I build things across</AnimatedLine>
-          <AnimatedLine className="text-text-tertiary">wildly different domains.</AnimatedLine>
+          <AnimatedLine>I like making machines</AnimatedLine>
+          <AnimatedLine className="text-text-tertiary">do stuff.</AnimatedLine>
         </h1>
 
         <motion.p
           variants={word}
           className="mt-6 text-base sm:text-lg text-text-secondary max-w-md leading-relaxed"
         >
-          From game engines to baseball statistics to trucking logistics.
-          Backend-focused, database-obsessed, endlessly curious.
+          Backend developer with a soft spot for database design.
+          I like building things across different domains.
         </motion.p>
 
         <motion.div variants={word} className="mt-10 flex gap-4">
