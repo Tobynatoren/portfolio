@@ -2,8 +2,8 @@ import { motion } from "framer-motion";
 
 const links = [
   { label: "GitHub", href: "https://github.com/Tobynatoren" },
-  { label: "LinkedIn", href: "https://linkedin.com/in/your-profile" },
-  { label: "Email", href: "mailto:your@email.com" },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/toby-andersen/" },
+  { label: "Email", href: "mailto:tobynatoren11@gmail.com" },
 ];
 
 export default function Contact() {

@@ -32,4 +32,5 @@ export interface ExperienceEntry {
   period: string;
   description: string;
   tech: string[];
+  type: "work" | "education";
 }

@@ -30,25 +30,13 @@ export default function ProjectDetail({ project, onClose }: Props) {
           {project.description}
         </p>
 
-        <div className="mt-4 flex items-center gap-6">
-          {project.github && (
-            <a
-              href={project.github}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-text-tertiary hover:text-text-primary transition-colors"
-            >
-              View on GitHub &rarr;
-            </a>
-          )}
-          <button
-            onClick={onClose}
-            aria-label="Close project details"
-            className="text-sm text-text-tertiary hover:text-text-primary transition-colors"
-          >
-            Close
-          </button>
-        </div>
+        <button
+          onClick={onClose}
+          aria-label="Close project details"
+          className="mt-4 text-sm text-text-tertiary hover:text-text-primary transition-colors"
+        >
+          Close
+        </button>
 
         {project.schema && <SchemaShowcase schema={project.schema} />}
       </div>
