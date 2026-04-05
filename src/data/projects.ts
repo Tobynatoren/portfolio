@@ -28,34 +28,24 @@ export const projects: Project[] = [
       sections: [
         {
           title: "Data Pipeline",
-          diagram: `flowchart LR
-    MLB["MLB Stats API"] -->|game results| ING["Ingestion\n4 seasons"]
-    SAV["Baseball Savant"] -->|pitch-level data| SC["Statcast\nFetch"]
-    OM["Open-Meteo API"] -->|stadium weather| WX["Weather\nCache"]
+          diagram: `flowchart TD
+    subgraph "Data Sources"
+        MLB["MLB Stats API"]
+        SAV["Baseball Savant"]
+        OM["Open-Meteo"]
+    end
 
-    ING --> ELO["ELO Engine\nTeam + Pitcher\nK=4 / K=32"]
-    SC --> FE["Feature Engineering\n14-day rolling windows"]
-    FE --> BF["Bullpen Fatigue\n3-day relief pitch sum"]
-    FE --> PR["Pitcher Rolling\nWhiff, Hard-hit, Velo"]
-    FE --> CF["Catcher Framing\nBorderline strike rate"]
-    SC --> BVP["Batter vs Pitcher\nwOBA matchups"]
-    SC --> BE["Batter ELO\nwOBA-based K=12"]
+    MLB --> ELO["ELO Engine\nTeam + Pitcher ratings"]
+    SAV --> FE["Feature Engineering\n20+ Statcast features"]
+    OM --> FE
 
-    ELO --> ML["LightGBM\n20 features\nHome-Away diffs"]
+    ELO --> ML["LightGBM Model\nHome-Away differentials"]
     FE --> ML
-    BF --> ML
-    PR --> ML
-    CF --> ML
-    BVP --> ML
-    WX --> ML
+    ELO --> MC["Monte Carlo\n10k playoff sims"]
 
-    ML --> PRED["Predictions\nBrier score eval"]
-    ELO --> MC["Monte Carlo\n10,000 sims\nPlayoff odds"]
-
-    PRED --> CACHE["SQLite Cache\nDataFrames + JSON"]
+    ML --> CACHE["SQLite Cache"]
     MC --> CACHE
-    CACHE --> API["FastAPI\nLoads all on startup"]
-    API --> DASH["React Dashboard\nPlotly charts"]`,
+    CACHE --> API["FastAPI"] --> DASH["React Dashboard\nPlotly charts"]`,
           annotation:
             "The entire pipeline runs once on FastAPI startup and caches results in SQLite, so the dashboard serves predictions from memory with zero latency. LightGBM was chosen over Logistic Regression because it handles NaN features natively and discovers feature interactions, meaning every game gets a prediction even with incomplete Statcast data.",
         },
@@ -249,7 +239,7 @@ CREATE TABLE IF NOT EXISTS challenge_progress (
     },
   },
   {
-    title: "Godot Multiplayer FPS",
+    title: "Clashfort",
     slug: "godot-projects",
     summary:
       "A multiplayer voxel-based team FPS with destructible terrain, character classes, and a C++ performance layer",
@@ -295,28 +285,20 @@ CREATE TABLE IF NOT EXISTS challenge_progress (
         {
           title: "Multiplayer Architecture",
           diagram: `flowchart TD
-    HOST["Host / Server\nENetMultiplayerPeer\nPort 25565"] -->|"_send_map_info.rpc()"| CL1["Client 1"]
-    HOST -->|"_send_map_info.rpc()"| CL2["Client 2"]
-
-    subgraph "Lobby Phase"
-        LP["NetworkManager.gd\nAutoload singleton"]
-        LP -->|"register_player.rpc()"| TEAM["Team Assignment\nAuto-balance or preference"]
-        TEAM --> CLASS["Class Selection\n6 character classes"]
-        CLASS --> READY["Ready Toggle\nAll must ready up"]
-        READY -->|"_broadcast_game_start.rpc()"| SPAWN["World spawns players\nMultiplayerSynchronizer"]
+    subgraph "Lobby"
+        NET["NetworkManager"] --> TEAM["Team Assignment"]
+        TEAM --> CLASS["Class Selection"]
+        CLASS --> START["Game Start"]
     end
 
-    subgraph "Authoritative Server Model"
-        INPUT["Client Input\nMovement, aim, shoot"] -->|"physics_process"| SYNC["MultiplayerSynchronizer\nPosition, rotation, velocity"]
-        SHOOT["Weapon fire\nRaycast hit detection"] -->|"server validates"| HIT["take_damage.rpc()\nServer only"]
-        HIT --> KILL["record_kill / record_death\n_sync_player_stat.rpc()"]
-        BDMG["Block damage\nExplosions, bullets"] -->|"server authoritative"| BSYNC["_sync_block_removed.rpc()\n_sync_block_damaged.rpc()"]
-        BSYNC --> SICOL["Structural collapse\n_sync_collapse_batch.rpc()"]
+    subgraph "Gameplay (Server Authoritative)"
+        INPUT["Client Input"] --> SERVER["Server Validates"]
+        SERVER --> DAMAGE["Damage + Kills\nReliable RPC"]
+        SERVER --> TERRAIN["Block Destruction\nStructural Collapse"]
+        SERVER --> SYNC["Position Sync\nMultiplayerSynchronizer"]
     end
 
-    subgraph "Periodic Sync"
-        PING["_update_all_pings()\nEvery 2 seconds"] -->|"ENet RTT"| PBROADCAST["_receive_ping_data.rpc()\nAll clients"]
-    end`,
+    START --> INPUT`,
           annotation:
             "The server is fully authoritative for all damage, kills, and terrain destruction. Clients send input and render predictions, but the server validates every hit and block modification before broadcasting the result via RPCs. Block damage uses reliable RPCs for destruction events and unreliable RPCs for health updates (acceptable loss). The lobby phase handles team balancing, class selection, and map synchronization before the host triggers game start.",
         },
